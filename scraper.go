@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/al4an2/goRssAggregator/internal/database"
+	"github.com/google/uuid"
 )
 
 func startScraping(
@@ -53,7 +55,31 @@ func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
 	}
 
 	for _, item := range rssFeed.Channel.Item {
-		log.Println("Found post:", item.Title, "on feed", feed.Name)
+		description := sql.NullString{}
+		pubTime, err := time.Parse(time.RFC1123Z, item.PubDate)
+		if err != nil {
+			log.Printf("Couldt parse date %v with err %s", item.PubDate, err)
+			continue
+		}
+		if item.Description != "" {
+			description.String = item.Description
+			description.Valid = true
+		}
+		_, err = db.CreatePost(context.Background(),
+			database.CreatePostParams{
+				ID:          uuid.New(),
+				CreatedAt:   time.Now().UTC(),
+				UpdatedAt:   time.Now().UTC(),
+				Title:       item.Title,
+				Description: description,
+				PublishAt:   pubTime,
+				Url:         item.Link,
+				FeedID:      feed.ID,
+			})
+		if err != nil {
+			log.Printf("Failed to create post %v from %v with err %s", item.Title, feed.Name, err)
+			continue
+		}
 	}
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(rssFeed.Channel.Item))
 }
