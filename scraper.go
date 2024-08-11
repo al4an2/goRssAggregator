@@ -87,11 +87,3 @@ func scrapeFeed(db *database.Queries, wg *sync.WaitGroup, feed database.Feed) {
 	}
 	log.Printf("Feed %s collected, %v posts found", feed.Name, len(rssFeed.Channel.Item))
 }
-
-/*
-	feed, err := urlToFeed("https://feeds.megaphone.fm/newheights.xml")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(feed)
-*/
